@@ -24,7 +24,7 @@ class WalletCreator {
     console.log(
       'Just to be 100% safe that nobody can fetch your mnemonic phrase from your computer, it is recommended to create a wallet without an active internet connection!'
     );
-    const answer: string = await this.question('Are you offline or want to procede anyway (yes/no)? ');
+    const answer: string = await this.question('Are you offline or want to proceed anyway (yes/no)? ');
     return answer.toLowerCase() != 'y' && answer.toLowerCase() != 'yes' ? false : true;
   }
 
