@@ -2,7 +2,7 @@ import { utils } from 'ethers';
 import * as readline from 'readline';
 
 class WalletCreator {
-  private readLine: readline.Interface = readline.createInterface({
+  private userInput: readline.Interface = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
@@ -30,7 +30,7 @@ class WalletCreator {
 
   private question(question: string): Promise<string> {
     return new Promise((resolve) => {
-      this.readLine.question(question, resolve);
+      this.userInput.question(question, resolve);
     });
   }
 }
