@@ -12,6 +12,6 @@ It is recommended to go offline before running the script just to be 100% sure t
 
 ## Usage
 
-Type `npm run start` and follow instructions on screen.
+Type `npm run start`, press enter and follow instructions on screen.
 
 Note: **CLOSE YOUR TERMINAL/CMD/POWERSHELL BEFORE GOING ONLINE AGAIN**
