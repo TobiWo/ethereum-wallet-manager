@@ -12,7 +12,8 @@ class WalletCreator {
       const entropy: Uint8Array = utils.randomBytes(32);
       const mnemonicPhrase: string = utils.entropyToMnemonic(entropy);
       const hdNode: utils.HDNode = utils.HDNode.fromMnemonic(mnemonicPhrase);
-      console.log(`\nYour address:\t${hdNode.address}`);
+      const standardEthereumNode: utils.HDNode = hdNode.derivePath("m/44'/60'/0'/0/0");
+      console.log(`\nYour address:\t${standardEthereumNode.address}`);
       console.log(`Your mnemonic:\t${mnemonicPhrase}`);
       console.log('\nStore your mnemonic safely and close your terminal before you go online again.');
       return;
