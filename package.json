@@ -13,12 +13,15 @@
     "start": "npx ts-node src/run.ts"
   },
   "dependencies": {
-    "@types/node": "^16.11.9",
-    "ethers": "^5.5.1",
-    "typescript": "^4.5.2"
+    "@types/node": "^18.0.1",
+    "chalk": "^4.1.2",
+    "ethers": "^5.6.9",
+    "prompts": "^2.4.2",
+    "typescript": "^4.7.4"
   },
   "devDependencies": {
-    "prettier": "^2.4.1",
-    "ts-node": "^10.4.0"
+    "@types/prompts": "^2.0.14",
+    "prettier": "^2.7.1",
+    "ts-node": "^10.8.2"
   }
 }
