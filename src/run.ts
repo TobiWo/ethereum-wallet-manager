@@ -1,4 +1,4 @@
-import { utils } from 'ethers';
+import { utils, Wallet } from 'ethers';
 import chalk from 'chalk';
 import Prompts from 'prompts';
 
@@ -6,15 +6,23 @@ class WalletCreator {
   /**
    * Creates a random 24-word mnemonic for an hd-wallet
    */
+
+  private DERIVATION_PATH = "m/44'/60'/0'/0/0";
+
   async createWallet(): Promise<void> {
     if (await this.isUserOffline()) {
       const entropy: Uint8Array = utils.randomBytes(32);
       const mnemonicPhrase: string = utils.entropyToMnemonic(entropy);
       const hdNode: utils.HDNode = utils.HDNode.fromMnemonic(mnemonicPhrase);
-      const standardEthereumNode: utils.HDNode = hdNode.derivePath("m/44'/60'/0'/0/0");
-      console.log(chalk.green(`\nYour address:\t${standardEthereumNode.address}`));
-      console.log(chalk.green(`Your mnemonic:\t${mnemonicPhrase}`));
-      console.log(chalk.green('\nStore your mnemonic safely and close your terminal before you go online again.'));
+      const standardEthereumNode: utils.HDNode = hdNode.derivePath(this.DERIVATION_PATH);
+      const wallet = Wallet.fromMnemonic(mnemonicPhrase, this.DERIVATION_PATH);
+      const walletPrivateKey = new Wallet(wallet.privateKey);
+      console.log(chalk.green(`\nYour wallet mnemonic:\t\t${mnemonicPhrase}`));
+      console.log(chalk.green(`Your first wallet address:\t${standardEthereumNode.address}`));
+      console.log(chalk.green(`Your addresses private key:\t${walletPrivateKey.privateKey}`));
+      console.log(
+        chalk.green('\nStore your mnemonic and private key safely and close your terminal before you go online again.')
+      );
       return;
     }
     console.log(chalk.red('You cancelled the wallet creation process!'));
