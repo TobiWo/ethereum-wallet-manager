@@ -4,6 +4,10 @@ Tool to create a random 24 word mnemonic which represents your account.
 
 It is recommended to go offline before running the script just to be 100% sure that nobody can catch your mnemonic phrase.
 
+## Requirements
+
+* >= NodeJS 16
+
 ## Prerequisites
 
 1. Install latest NodeJS version from [here](https://nodejs.org/en/download/).
