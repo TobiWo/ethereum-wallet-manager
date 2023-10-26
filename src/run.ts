@@ -13,7 +13,12 @@ class WalletCreator {
   async createWallet(): Promise<void> {
     if (await this.isUserOffline()) {
       const entropy: Uint8Array = randomBytes(32);
-      const mnemonic: Mnemonic = Mnemonic.fromEntropy(entropy);
+      let mnemonic: Mnemonic = Mnemonic.fromEntropy(entropy);
+      const proceed = await this.promptHowToProceed();
+      if (proceed === 'existing') {
+        const existingMnemonic = await this.promptSecret('Mnemonic:');
+        mnemonic = Mnemonic.fromPhrase(existingMnemonic);
+      }
       const hdNodeWallet = HDNodeWallet.fromMnemonic(mnemonic, this.DERIVATION_PATH);
       console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
       console.log(_chalk.green(`Your first wallet address:\t${hdNodeWallet.address}`));
@@ -46,6 +51,39 @@ class WalletCreator {
       name: 'value',
       message: message,
       initial: false,
+    });
+    return answer.value;
+  }
+
+  /**
+   * Prompts the user for a secret
+   *
+   * @param message - The output to be displayed for the user
+   * @returns The secret entered by the user
+   */
+  private async promptSecret(message: string): Promise<string> {
+    const answer = await Prompts({
+      type: 'password',
+      name: 'value',
+      message: message,
+    });
+    return answer.value;
+  }
+
+  /**
+   * Prompts the user whether to create a new wallet or log address and private key for existing one
+   *
+   * @returns The selection made by the user
+   */
+  private async promptHowToProceed(): Promise<string> {
+    const answer = await Prompts({
+      type: 'select',
+      name: 'value',
+      message: 'How to proceed?',
+      choices: [
+        { title: 'Create new mnemonic and wallet', value: 'new' },
+        { title: 'Return information from existing mnemonic', value: 'existing' },
+      ],
     });
     return answer.value;
   }
