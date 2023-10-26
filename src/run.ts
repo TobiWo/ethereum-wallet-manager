@@ -1,5 +1,6 @@
-import { utils, Wallet } from 'ethers';
-import chalk from 'chalk';
+import { randomBytes, Mnemonic, HDNodeWallet, Wallet } from 'ethers';
+const chalk = import('chalk').then((m) => m.default);
+const _chalk = await chalk;
 import Prompts from 'prompts';
 
 class WalletCreator {
@@ -11,26 +12,23 @@ class WalletCreator {
 
   async createWallet(): Promise<void> {
     if (await this.isUserOffline()) {
-      const entropy: Uint8Array = utils.randomBytes(32);
-      const mnemonicPhrase: string = utils.entropyToMnemonic(entropy);
-      const hdNode: utils.HDNode = utils.HDNode.fromMnemonic(mnemonicPhrase);
-      const standardEthereumNode: utils.HDNode = hdNode.derivePath(this.DERIVATION_PATH);
-      const wallet = Wallet.fromMnemonic(mnemonicPhrase, this.DERIVATION_PATH);
-      const walletPrivateKey = new Wallet(wallet.privateKey);
-      console.log(chalk.green(`\nYour wallet mnemonic:\t\t${mnemonicPhrase}`));
-      console.log(chalk.green(`Your first wallet address:\t${standardEthereumNode.address}`));
-      console.log(chalk.green(`Your addresses private key:\t${walletPrivateKey.privateKey}`));
+      const entropy: Uint8Array = randomBytes(32);
+      const mnemonic: Mnemonic = Mnemonic.fromEntropy(entropy);
+      const hdNodeWallet = HDNodeWallet.fromMnemonic(mnemonic, this.DERIVATION_PATH);
+      console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
+      console.log(_chalk.green(`Your first wallet address:\t${hdNodeWallet.address}`));
+      console.log(_chalk.green(`Your addresses private key:\t${hdNodeWallet.privateKey}`));
       console.log(
-        chalk.green('\nStore your mnemonic and private key safely and close your terminal before you go online again.')
+        _chalk.green('\nStore your mnemonic and private key safely and close your terminal before you go online again.')
       );
       return;
     }
-    console.log(chalk.red('You cancelled the wallet creation process!'));
+    console.log(_chalk.red('You cancelled the wallet creation process!'));
   }
 
   private async isUserOffline(): Promise<boolean> {
     console.log(
-      chalk.yellowBright(
+      _chalk.yellowBright(
         'Just to be 100% safe that nobody can fetch your mnemonic phrase from your computer, it is recommended to create a wallet without an active internet connection!'
       )
     );
