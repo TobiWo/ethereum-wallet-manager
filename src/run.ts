@@ -9,6 +9,7 @@ class WalletCreator {
    */
 
   private DERIVATION_PATH = "m/44'/60'/0'/0/0";
+  private wallet: Wallet | HDNodeWallet = Wallet.createRandom();
 
   async createWallet(): Promise<void> {
     if (await this.isUserOffline()) {
@@ -18,23 +19,29 @@ class WalletCreator {
       if (proceed === 'existing') {
         const existingMnemonic = await this.promptSecret('Mnemonic:');
         mnemonic = Mnemonic.fromPhrase(existingMnemonic);
+      } else if (proceed === 'keystore') {
+        const keystore = await this.promptSecret('Keystore:');
+        const password = await this.promptSecret('Password:');
+        this.wallet = Wallet.fromEncryptedJsonSync(keystore, password);
       }
-      const hdNodeWallet = HDNodeWallet.fromMnemonic(mnemonic, this.DERIVATION_PATH);
-      console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
-      console.log(_chalk.green(`Your first wallet address:\t${hdNodeWallet.address}`));
-      console.log(_chalk.green(`Your addresses private key:\t${hdNodeWallet.privateKey}`));
-      console.log(
-        _chalk.green('\nStore your mnemonic and private key safely and close your terminal before you go online again.')
-      );
-      return;
+      if (proceed === 'existing' || proceed === 'new') {
+        this.wallet = HDNodeWallet.fromMnemonic(mnemonic, this.DERIVATION_PATH);
+        console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
+      }
+      if (proceed) {
+        console.log(_chalk.green(`Your wallet address:\t${this.wallet.address}`));
+        console.log(_chalk.green(`Your addresses private key:\t${this.wallet.privateKey}`));
+        console.log(_chalk.green('\nStore your secrets safely and close your terminal before you go online again.'));
+        return;
+      }
     }
-    console.log(_chalk.red('You cancelled the wallet creation process!'));
+    console.log(_chalk.red('You cancelled the wallet creation/loading process!'));
   }
 
   private async isUserOffline(): Promise<boolean> {
     console.log(
       _chalk.yellowBright(
-        'Just to be 100% safe that nobody can fetch your mnemonic phrase from your computer, it is recommended to create a wallet without an active internet connection!'
+        'Just to be 100% safe that nobody can fetch your mnemonic phrase or private key from your computer, it is recommended to create a wallet without an active internet connection!'
       )
     );
     return await this.promptForConfirmation('Are you offline or want to proceed anyway (yes/no)? ');
@@ -83,6 +90,7 @@ class WalletCreator {
       choices: [
         { title: 'Create new mnemonic and wallet', value: 'new' },
         { title: 'Return information from existing mnemonic', value: 'existing' },
+        { title: 'Return private key from keystore file', value: 'keystore' },
       ],
     });
     return answer.value;
