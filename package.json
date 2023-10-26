@@ -8,20 +8,20 @@
     "Wallet"
   ],
   "author": "Tobias Wohland",
+  "type": "module",
   "scripts": {
     "build": "tsc --build",
-    "start": "npx ts-node src/run.ts"
+    "start": "npm run build && node dist/run.js"
   },
   "dependencies": {
-    "@types/node": "^18.11.18",
-    "chalk": "^4.1.2",
-    "ethers": "^5.7.2",
+    "@types/node": "^20.8.9",
+    "chalk": "^5.3.0",
+    "ethers": "^6.8.0",
     "prompts": "^2.4.2",
-    "typescript": "^4.9.4"
+    "typescript": "^5.2.2"
   },
   "devDependencies": {
-    "@types/prompts": "^2.4.2",
-    "prettier": "^2.8.3",
-    "ts-node": "^10.9.1"
+    "@types/prompts": "^2.4.7",
+    "prettier": "^3.0.3"
   }
 }
