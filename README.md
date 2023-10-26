@@ -6,7 +6,7 @@ It is recommended to go offline before running the script just to be 100% sure t
 
 ## Requirements
 
-* >= NodeJS 16
+* only tested with NodeJS 20.9.0 LTS
 
 ## Prerequisites
 
