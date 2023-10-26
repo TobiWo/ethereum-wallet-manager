@@ -29,7 +29,7 @@ class WalletCreator {
         console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
       }
       if (proceed) {
-        console.log(_chalk.green(`Your wallet address:\t${this.wallet.address}`));
+        console.log(_chalk.green(`Your wallet address:\t\t${this.wallet.address}`));
         console.log(_chalk.green(`Your addresses private key:\t${this.wallet.privateKey}`));
         console.log(_chalk.green('\nStore your secrets safely and close your terminal before you go online again.'));
         return;
