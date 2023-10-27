@@ -3,39 +3,94 @@ const chalk = import('chalk').then((m) => m.default);
 const _chalk = await chalk;
 import Prompts from 'prompts';
 
-class WalletCreator {
+class WalletManager {
   /**
-   * Creates a random 24-word mnemonic for an hd-wallet
+   * Create new or manage existing EVM (Ethereum Virtual Machine) based EOA (Externally Owned Account) wallets
    */
 
-  private DERIVATION_PATH = "m/44'/60'/0'/0/0";
-  private wallet: Wallet | HDNodeWallet = Wallet.createRandom();
+  /**
+   * Main workflow function
+   *
+   */
+  async manageWallet(): Promise<void> {
+    try {
+      await this.isUserOffline();
+      const howToProceed = await this.promptHowToProceed();
+      const mnemonic = await this.createMnemonic(howToProceed);
+      const wallet = await this.createWallet(howToProceed, mnemonic);
+      this.logWalletInformation(wallet, mnemonic);
+    } catch (error) {
+      console.log(_chalk.red('You cancelled the wallet creation/loading process!'));
+    }
+  }
 
-  async createWallet(): Promise<void> {
-    if (await this.isUserOffline()) {
+  /**
+   * Creates a mnemonic if the respective option was choosen from the cli prompt
+   *
+   * @param howToProceed - The workflow option choosen by the user
+   */
+  private async createMnemonic(howToProceed: string): Promise<Mnemonic | null> {
+    if (howToProceed != 'keystore') {
       const entropy: Uint8Array = randomBytes(32);
       let mnemonic: Mnemonic = Mnemonic.fromEntropy(entropy);
-      const proceed = await this.promptHowToProceed();
-      if (proceed === 'existing') {
+      if (howToProceed === 'existing') {
         const existingMnemonic = await this.promptSecret('Mnemonic:');
-        mnemonic = Mnemonic.fromPhrase(existingMnemonic);
-      } else if (proceed === 'keystore') {
-        const keystore = await this.promptSecret('Keystore:');
-        const password = await this.promptSecret('Password:');
-        this.wallet = Wallet.fromEncryptedJsonSync(keystore, password);
+        try {
+          mnemonic = Mnemonic.fromPhrase(existingMnemonic);
+        } catch (error) {
+          console.log(_chalk.red('The provided mnemonic is not correct! Please double-check!'));
+          process.exit(1);
+        }
       }
-      if (proceed === 'existing' || proceed === 'new') {
-        this.wallet = HDNodeWallet.fromMnemonic(mnemonic, this.DERIVATION_PATH);
-        console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
+      return mnemonic;
+    }
+    return null;
+  }
+
+  /**
+   * Creates a wallet based on the user input
+   *
+   * @param howToProceed - The workflow option choosen by the user
+   * @param mnemonic - The created mnemonic
+   */
+  private async createWallet(howToProceed: string, mnemonic: Mnemonic | null): Promise<Wallet | HDNodeWallet> {
+    let wallet: Wallet | HDNodeWallet = Wallet.createRandom();
+    if (mnemonic && (howToProceed === 'existing' || howToProceed === 'new')) {
+      const derivationPath = await this.promptForDerivationPath();
+      try {
+        wallet = HDNodeWallet.fromMnemonic(mnemonic, derivationPath);
+      } catch {
+        console.log(_chalk.red('The provided derivation path is not correct! Please double-check!'));
+        process.exit(1);
       }
-      if (proceed) {
-        console.log(_chalk.green(`Your wallet address:\t\t${this.wallet.address}`));
-        console.log(_chalk.green(`Your addresses private key:\t${this.wallet.privateKey}`));
-        console.log(_chalk.green('\nStore your secrets safely and close your terminal before you go online again.'));
-        return;
+    } else {
+      const keystore = await this.promptSecret('Keystore:');
+      const password = await this.promptSecret('Password:');
+      try {
+        wallet = Wallet.fromEncryptedJsonSync(keystore, password);
+      } catch (error) {
+        console.log(_chalk.red('The provided keystore json is not correct! Please double-check!'));
+        process.exit(1);
       }
     }
-    console.log(_chalk.red('You cancelled the wallet creation/loading process!'));
+    return wallet;
+  }
+
+  /**
+   * Logs information for the created wallet
+   *
+   * @param wallet - The created wallet
+   * @param mnemonic - The created mnemonic
+   */
+  private logWalletInformation(wallet: Wallet | HDNodeWallet, mnemonic: Mnemonic | null): void {
+    if (mnemonic) {
+      console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
+      console.log(_chalk.green(`Your wallet address:\t\t${wallet.address}`));
+    } else {
+      console.log(_chalk.green(`\nYour wallet address:\t\t${wallet.address}`));
+    }
+    console.log(_chalk.green(`Your addresses private key:\t${wallet.privateKey}`));
+    console.log(_chalk.green('\nStore your secrets safely and close your terminal before you go online again.'));
   }
 
   private async isUserOffline(): Promise<boolean> {
@@ -48,7 +103,26 @@ class WalletCreator {
   }
 
   /**
-   * Prompts for confirming or denying a question.
+   * Prompts for hd derivation path
+   *
+   * @param message - The message which will displayed for the user
+   */
+  private async promptForDerivationPath(): Promise<string> {
+    const answer = await Prompts({
+      type: 'text',
+      name: 'value',
+      message:
+        'Used HD derivation path (for more info see: https://help.myetherwallet.com/en/articles/5867305-hd-wallets-and-derivation-paths - default is Ethereum path): ',
+      initial: "m/44'/60'/0'/0/0",
+    });
+    if (!answer.value) {
+      throw new Error();
+    }
+    return answer.value;
+  }
+
+  /**
+   * Prompts for confirming or denying a question
    *
    * @param message - The message which will displayed for the user
    */
@@ -59,6 +133,9 @@ class WalletCreator {
       message: message,
       initial: false,
     });
+    if (!answer.value) {
+      throw new Error();
+    }
     return answer.value;
   }
 
@@ -74,11 +151,14 @@ class WalletCreator {
       name: 'value',
       message: message,
     });
+    if (!answer.value) {
+      throw new Error();
+    }
     return answer.value;
   }
 
   /**
-   * Prompts the user whether to create a new wallet or log address and private key for existing one
+   * Asks the user how to proceed
    *
    * @returns The selection made by the user
    */
@@ -93,12 +173,15 @@ class WalletCreator {
         { title: 'Return private key from keystore file', value: 'keystore' },
       ],
     });
+    if (!answer.value) {
+      throw new Error();
+    }
     return answer.value;
   }
 }
 
-const walletCreator: WalletCreator = new WalletCreator();
-walletCreator
-  .createWallet()
+const walletManager: WalletManager = new WalletManager();
+walletManager
+  .manageWallet()
   .catch(console.error)
-  .finally(() => process.exit());
+  .finally(() => process.exit(0));
