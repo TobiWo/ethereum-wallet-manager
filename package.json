@@ -1,7 +1,7 @@
 {
-  "name": "ethereum-wallet-creator",
-  "version": "0.0.1",
-  "description": "Tool to create a random 24 word mnemonic which represents your account",
+  "name": "ethereum-wallet-manager",
+  "version": "0.1.0",
+  "description": "Tool to create new or manage existing EVM (Ethereum Virtual Machine) based EOA (Externally Owned Account) wallets",
   "keywords": [
     "NodeJS",
     "Ethereum",
