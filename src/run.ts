@@ -8,24 +8,64 @@ class WalletManager {
    * Create new or manage existing EVM (Ethereum Virtual Machine) based EOA (Externally Owned Account) wallets
    */
 
+  private cancelMessage = 'You cancelled the wallet creation/loading process!';
+
   /**
    * Main workflow function
    *
    */
   async manageWallet(): Promise<void> {
     try {
-      await this.isUserOffline();
-      const howToProceed = await this.promptHowToProceed();
-      const mnemonic = await this.createMnemonic(howToProceed);
-      const wallet = await this.createWallet(howToProceed, mnemonic);
-      this.logWalletInformation(wallet, mnemonic);
+      if (await this.isUserOffline()) {
+        const howToProceed = await this.promptHowToProceed();
+        const mnemonic = await this.createMnemonic(howToProceed);
+        const wallet = await this.createWallet(howToProceed, mnemonic);
+        const encryptedJson = await this.encryptToJson(wallet);
+        this.logWalletInformation(wallet, mnemonic, encryptedJson);
+      } else {
+        console.log(_chalk.red(this.cancelMessage));
+      }
     } catch (error) {
-      console.log(_chalk.red('You cancelled the wallet creation/loading process!'));
+      console.log(_chalk.red(this.cancelMessage));
     }
   }
 
   /**
-   * Creates a mnemonic if the respective option was choosen from the cli prompt
+   * Ask the user for his online status
+   */
+  private async isUserOffline(): Promise<boolean> {
+    console.log(
+      _chalk.yellowBright(
+        'Just to be 100% safe that nobody can fetch your mnemonic phrase or private key from your computer, it is recommended to create a wallet without an active internet connection!'
+      )
+    );
+    return await this.promptForConfirmation('Are you offline or want to proceed anyway (yes/no)? ');
+  }
+
+  /**
+   * Ask the user how to proceed
+   *
+   * @returns The selection made by the user
+   */
+  private async promptHowToProceed(): Promise<string> {
+    const answer = await Prompts({
+      type: 'select',
+      name: 'value',
+      message: 'How to proceed?',
+      choices: [
+        { title: 'Create new mnemonic and wallet', value: 'new' },
+        { title: 'Return information from existing mnemonic', value: 'existing' },
+        { title: 'Return private key from keystore file', value: 'keystore' },
+      ],
+    });
+    if (answer.value === undefined) {
+      throw new Error();
+    }
+    return answer.value;
+  }
+
+  /**
+   * Create a mnemonic if the respective option was choosen from the cli prompt
    *
    * @param howToProceed - The workflow option choosen by the user
    */
@@ -48,7 +88,7 @@ class WalletManager {
   }
 
   /**
-   * Creates a wallet based on the user input
+   * Create a wallet based on the user input
    *
    * @param howToProceed - The workflow option choosen by the user
    * @param mnemonic - The created mnemonic
@@ -65,9 +105,10 @@ class WalletManager {
       }
     } else {
       const keystore = await this.promptSecret('Keystore:');
-      const password = await this.promptSecret('Password:');
+      const passphrase = await this.promptSecret('Passphrase:');
+      this.checkPassphrase(passphrase);
       try {
-        wallet = Wallet.fromEncryptedJsonSync(keystore, password);
+        wallet = Wallet.fromEncryptedJsonSync(keystore, passphrase);
       } catch (error) {
         console.log(_chalk.red('The provided keystore json is not correct! Please double-check!'));
         process.exit(1);
@@ -77,33 +118,7 @@ class WalletManager {
   }
 
   /**
-   * Logs information for the created wallet
-   *
-   * @param wallet - The created wallet
-   * @param mnemonic - The created mnemonic
-   */
-  private logWalletInformation(wallet: Wallet | HDNodeWallet, mnemonic: Mnemonic | null): void {
-    if (mnemonic) {
-      console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
-      console.log(_chalk.green(`Your wallet address:\t\t${wallet.address}`));
-    } else {
-      console.log(_chalk.green(`\nYour wallet address:\t\t${wallet.address}`));
-    }
-    console.log(_chalk.green(`Your addresses private key:\t${wallet.privateKey}`));
-    console.log(_chalk.green('\nStore your secrets safely and close your terminal before you go online again.'));
-  }
-
-  private async isUserOffline(): Promise<boolean> {
-    console.log(
-      _chalk.yellowBright(
-        'Just to be 100% safe that nobody can fetch your mnemonic phrase or private key from your computer, it is recommended to create a wallet without an active internet connection!'
-      )
-    );
-    return await this.promptForConfirmation('Are you offline or want to proceed anyway (yes/no)? ');
-  }
-
-  /**
-   * Prompts for hd derivation path
+   * Prompt for hd derivation path
    *
    * @param message - The message which will displayed for the user
    */
@@ -115,14 +130,54 @@ class WalletManager {
         'Used HD derivation path (for more info see: https://help.myetherwallet.com/en/articles/5867305-hd-wallets-and-derivation-paths - default is Ethereum path): ',
       initial: "m/44'/60'/0'/0/0",
     });
-    if (!answer.value) {
+    if (answer.value === undefined) {
       throw new Error();
     }
     return answer.value;
   }
 
   /**
-   * Prompts for confirming or denying a question
+   * Encrypt a wallet to a keystore json
+   *
+   * @param wallet - The created wallet
+   */
+  private async encryptToJson(wallet: Wallet | HDNodeWallet): Promise<string | null> {
+    const answer = await this.promptForConfirmation('Do you want to create an encrypted keystore json as well?');
+    if (answer) {
+      const passphrase = await this.promptSecret('Keystore passphrase:');
+      this.checkPassphrase(passphrase);
+      const json = await wallet.encrypt(passphrase);
+      return json;
+    }
+    return null;
+  }
+
+  /**
+   * Log information for the created wallet
+   *
+   * @param wallet - The created wallet
+   * @param mnemonic - The created mnemonic
+   */
+  private async logWalletInformation(
+    wallet: Wallet | HDNodeWallet,
+    mnemonic: Mnemonic | null,
+    encryptedJson: string | null
+  ): Promise<void> {
+    if (mnemonic) {
+      console.log(_chalk.green(`\nYour wallet mnemonic:\t\t${mnemonic.phrase}`));
+      console.log(_chalk.green(`Your wallet address:\t\t${wallet.address}`));
+    } else {
+      console.log(_chalk.green(`\nYour wallet address:\t\t${wallet.address}`));
+    }
+    console.log(_chalk.green(`Your corresponding private key:\t${wallet.privateKey}`));
+    if (encryptedJson) {
+      console.log(_chalk.green(`\nYour corresponding keystore:\t${encryptedJson}`));
+    }
+    console.log(_chalk.yellowBright('\nStore your secrets safely and close your terminal before you go online again.'));
+  }
+
+  /**
+   * Prompt for confirming or denying a question
    *
    * @param message - The message which will displayed for the user
    */
@@ -133,14 +188,14 @@ class WalletManager {
       message: message,
       initial: false,
     });
-    if (!answer.value) {
+    if (answer.value === undefined) {
       throw new Error();
     }
     return answer.value;
   }
 
   /**
-   * Prompts the user for a secret
+   * Prompt the user for a secret
    *
    * @param message - The output to be displayed for the user
    * @returns The secret entered by the user
@@ -151,32 +206,22 @@ class WalletManager {
       name: 'value',
       message: message,
     });
-    if (!answer.value) {
+    if (answer.value === undefined) {
       throw new Error();
     }
     return answer.value;
   }
 
   /**
-   * Asks the user how to proceed
+   * Check if passphrase is empty
    *
-   * @returns The selection made by the user
+   * @param passphrase - The passphrase provided by the user
    */
-  private async promptHowToProceed(): Promise<string> {
-    const answer = await Prompts({
-      type: 'select',
-      name: 'value',
-      message: 'How to proceed?',
-      choices: [
-        { title: 'Create new mnemonic and wallet', value: 'new' },
-        { title: 'Return information from existing mnemonic', value: 'existing' },
-        { title: 'Return private key from keystore file', value: 'keystore' },
-      ],
-    });
-    if (!answer.value) {
-      throw new Error();
+  private checkPassphrase(passphrase: string): void {
+    if (!passphrase) {
+      console.log(_chalk.red('Empty passphrase is not allowed!'));
+      process.exit(1);
     }
-    return answer.value;
   }
 }
 
