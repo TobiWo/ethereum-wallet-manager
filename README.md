@@ -9,9 +9,12 @@ It is recommended to go offline before running the script just to be 100% sure t
 1. Create a fresh mnemonic and wallet
 1. Retrieve public and private key and encrypted keystore json for provided mnemonic
 1. Create new or manage existing mnemonc/wallet for different EVM chains by using custom derivation paths
+1. Load multiple accounts (public/private keys) for one mnemonic while using different derivation paths
 1. Retrieve public and private key for provided encrypted keystore json
 
-Note: In general a mnemonic is the representation of an hd wallet which includes hundreds of public/private keys (accounts). However, this tool only logs the first public and private key for a created/loaded mnemonic currently ([see todo](#todo)).
+### Note
+
+In general a mnemonic is the representation of an hd wallet which includes hundreds of public/private keys (accounts). However, this tool only logs one public and private key for a created/loaded mnemonic currently, based on the [derivation path](https://help.myetherwallet.com/en/articles/5867305-hd-wallets-and-derivation-paths) ([see todo](#todo)). **If you need a different account you can provide a different derivation path with altered path components. E.g. MetaMask uses the address index component of the derivation path to load multiple accounts for one mnemonic. Therefore the base path, which is "m/44'/60'/0'/0/0", can be altered to "m/44'/60'/0'/0/1" to retrieve the second account like it is loaded while using MetaMask.**
 
 ## Requirements
 
