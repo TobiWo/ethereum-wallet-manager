@@ -18,7 +18,7 @@ In general a mnemonic is the representation of an hd wallet which includes hundr
 
 ## Requirements
 
-* only tested with NodeJS 20.9.0 LTS
+* NodeJS >= 20.0.0
 
 ## Prerequisites
 
